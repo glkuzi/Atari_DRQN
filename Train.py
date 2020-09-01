@@ -15,7 +15,7 @@ update_interval        = 10000 # target net
 update_frequency       = 4  # the number of actions selected by the agent between successive SGD updates
 preprocess_height      = 84
 preprocess_width       = 84
-model_path             = './DQN.model'
+model_path             = './DRQN.model'
 
 def main():
     env = breakout(preprocess_height, preprocess_width)

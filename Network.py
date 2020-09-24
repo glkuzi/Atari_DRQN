@@ -6,6 +6,8 @@ import numpy as np
 import os
 import random
 
+FLICKERING = True
+
 
 class DQN(nn.Module):
     def __init__(self, height, width, action_space):
@@ -40,7 +42,9 @@ class DQN(nn.Module):
                 nn.init.constant_(module.bias_hh, 0)
 
     def forward(self, x, hidden):
-        obs = random.randint(0, 1)
+        obs = 1
+        if FLICKERING:
+            obs = random.randint(0, 1)
         x = F.relu(self.conv1(x * obs))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))

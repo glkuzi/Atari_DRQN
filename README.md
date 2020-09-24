@@ -1,5 +1,5 @@
 # Breakout_DRQN
-DRQN implementation in Atari Breakout
+DRQN implementation for Atari. Current environment is flickering Pong
 
 # Requirements
 - pytorch

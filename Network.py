@@ -3,13 +3,15 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import os
 import random
+
 
 class DQN(nn.Module):
     def __init__(self, height, width, action_space):
         super(DQN, self).__init__()
-        self.height = (((((height - 8)//4 + 1) - 4)//2 + 1) -3)  + 1
-        self.width = (((((width - 8)//4 + 1) - 4)//2 + 1) -3)  + 1
+        self.height = (((((height - 8) // 4 + 1) - 4) // 2 + 1) - 3) + 1
+        self.width = (((((width - 8) // 4 + 1) - 4) // 2 + 1) - 3) + 1
 
         # layer 1
         self.conv1 = nn.Conv2d(1, 32, kernel_size=8, stride=4)
@@ -28,7 +30,6 @@ class DQN(nn.Module):
 
         self.initialize_weights()
 
-
     def initialize_weights(self):
         for module in self.modules():
             if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
@@ -38,10 +39,9 @@ class DQN(nn.Module):
                 nn.init.constant_(module.bias_ih, 0)
                 nn.init.constant_(module.bias_hh, 0)
 
-
-
     def forward(self, x, hidden):
-        x = F.relu(self.conv1(x))
+        obs = random.randint(0, 1)
+        x = F.relu(self.conv1(x * obs))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
 
@@ -52,23 +52,23 @@ class DQN(nn.Module):
         x = self.fc(h)
         return x, (h, c)
 
+
 class DQN_Operator:
     def __init__(self, height, width, action_space, learning_rate, model_path = None):
         self.action_space = action_space
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
+
         self.behaviourPolicy = DQN(height, width, action_space).to(self.device)
         self.targetPolicy = DQN(height, width, action_space).to(self.device)
-
-        self.optimizer = optim.Adam(self.behaviourPolicy.parameters(), lr=learning_rate)
-
-        if model_path:
+        # use adadelta instead of adam, as in paper
+        self.optimizer = optim.Adadelta(self.behaviourPolicy.parameters(), lr=learning_rate, rho=0.95)
+        if model_path and os.path.isfile(model_path):
             net_parameter = torch.load(model_path)
             self.behaviourPolicy.load_state_dict(net_parameter)
             print('loaded model')
         self.update_targetPolicy()
-    
+
     def update_targetPolicy(self):
         self.targetPolicy.load_state_dict(self.behaviourPolicy.state_dict())
 
@@ -93,7 +93,7 @@ class DQN_Operator:
         idx = 0
 
         while idx < len(a_batch)-1:
-            if t_batch[idx] == 0.0: # if the next state is terminate state
+            if t_batch[idx] == 0.0:  # if the next state is terminate state
                 s = s_batch[idx].unsqueeze(0)
                 a = a_batch[idx]
                 r = r_batch[idx]
@@ -109,7 +109,7 @@ class DQN_Operator:
                 hb, cb = self.init_hidden()
                 ht, ct = self.init_hidden()
                 hb, cb, ht, ct = hb.to(self.device), cb.to(self.device), ht.to(self.device), ct.to(self.device)
-                if idx == len(a_batch)-1: # if the index is the last index, break because there is no next state in the batch
+                if idx == len(a_batch)-1:  # if the index is the last index, break because there is no next state in the batch
                     break
 
             s = s_batch[idx].unsqueeze(0)
@@ -130,8 +130,9 @@ class DQN_Operator:
 
         self.optimizer.zero_grad()
         loss.backward()
+        # clip lstm gradients to 10, as in paper
+        torch.nn.utils.clip_grad_norm_(self.behaviourPolicy.lstm.parameters(), 10)
         self.optimizer.step()
-
 
     def action_epsilon_greedy(self, epsilon, state, hidden):
         """
@@ -155,13 +156,13 @@ class DQN_Operator:
             action = random.randint(0, self.action_space-1)
         else:
             action = output.argmax().item()
-        
+
         return action, (h, c)
 
     def init_hidden(self):
         h, c = torch.zeros([1, 512], dtype=torch.float), torch.zeros([1, 512], dtype=torch.float) 
         return h, c
-    
+
     def save(self, model_path):
         net_parameter = self.behaviourPolicy.state_dict()
         torch.save(net_parameter, model_path)

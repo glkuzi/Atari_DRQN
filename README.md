@@ -1,4 +1,4 @@
-# Breakout_DRQN
+# DRQN for Atari
 DRQN implementation for Atari. Current environment is flickering Pong
 
 # Requirements

@@ -5,8 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 import os
 import random
-
-FLICKERING = True
+from Config import FLICKERING, momentum
 
 
 class DQN(nn.Module):
@@ -66,7 +65,7 @@ class DQN_Operator:
         self.behaviourPolicy = DQN(height, width, action_space).to(self.device)
         self.targetPolicy = DQN(height, width, action_space).to(self.device)
         # use adadelta instead of adam, as in paper
-        self.optimizer = optim.Adadelta(self.behaviourPolicy.parameters(), lr=learning_rate, rho=0.95)
+        self.optimizer = optim.Adadelta(self.behaviourPolicy.parameters(), lr=learning_rate, rho=momentum)
         if model_path and os.path.isfile(model_path):
             net_parameter = torch.load(model_path)
             self.behaviourPolicy.load_state_dict(net_parameter)

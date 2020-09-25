@@ -1,12 +1,7 @@
 import time
 from Network import DQN_Operator
 from Environment import atari_env
-
-play_epi_num           = 100
-preprocess_height      = 84
-preprocess_width       = 84
-name                   = 'Pong-v0'
-model_path             = './DRQN.model'
+from Config import *
 
 
 def main():

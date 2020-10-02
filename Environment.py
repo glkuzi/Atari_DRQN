@@ -2,6 +2,7 @@ import gym
 import random
 import numpy as np
 import cv2
+from Config import FLICKERING
 
 
 class ReplayBuffer:
@@ -54,10 +55,19 @@ class atari_env:
         input:
           s -- given state, RGB image of 210 * 160 *3
         """
-        s = cv2.cvtColor(cv2.resize(s, (self.height, self.width)), cv2.COLOR_BGR2GRAY)
+        #cv2.imshow("RGB", s)
+        s = cv2.cvtColor(cv2.resize(s, (self.height, self.width)),
+                         cv2.COLOR_BGR2GRAY)
+        #cv2.imshow("Gray", s)
         s = np.divide(s, 255.0)
+        #cv2.imshow("normGray", s)
         s = np.expand_dims(s, axis=0)
-        return s
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
+        obs = 1
+        if FLICKERING:
+            obs = random.randint(0, 1)
+        return s * obs / 255.0
 
     def step(self, a):
         s_prime, r, terminate, info = self.env.step(a)

@@ -22,10 +22,18 @@ def main():
         score = 0
 
         while not terminate:
+            h, c = Operator.init_hidden()
             a, (h_prime, c_prime) = Operator.action_epsilon_greedy(epsilon, s, (h, c))
             s_prime, r, terminate, _ = env.step(a)
+            #history = history[1:] + [s_prime]
             t = 0.0 if terminate else 1.0
-            buffer.push((s, a, r, t))
+            # normalize reward
+            r_norm = r
+            if r < 0:
+                r_norm = -1.0
+            elif r > 0:
+                r_norm = 1.0
+            buffer.push((s, a, r_norm, t))
 
             s = s_prime
             h = h_prime
@@ -36,8 +44,14 @@ def main():
             # env.render()
 
             if step % update_frequency == 0 and buffer.size() > replay_start_size:
-                s_batch, a_batch, r_batch, t_batch = buffer.sample(batch_size)
-                Operator.train(s_batch, a_batch, r_batch, t_batch, gamma)
+                s_batch1, a_batch1, r_batch1, t_batch1 = [], [], [], []
+                for k in range(real_batch_size):
+                    s_batch, a_batch, r_batch, t_batch = buffer.sample(batch_size)
+                    s_batch1.append(s_batch)
+                    a_batch1.append(a_batch)
+                    r_batch1.append(r_batch)
+                    t_batch1.append(t_batch)
+                Operator.train(s_batch1, a_batch1, r_batch1, t_batch1, gamma)
 
             if step % update_interval == 0 and buffer.size() > replay_start_size:
                 Operator.update_targetPolicy()
